@@ -89,3 +89,5 @@ logs/
 
 # UV
 .uv/ 
+# Runtime connection details written by the MCP server
+mcp_server.json
