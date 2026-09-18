@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-USE_SANDBOX = os.getenv("USE_SANDBOX", "true").lower() == "false"
+USE_SANDBOX = os.getenv("USE_SANDBOX", "true").lower() == "true"
 
 # DigiKey OAuth2 token endpoint
 if USE_SANDBOX:
@@ -110,12 +110,16 @@ def keyword_search(keywords: str, limit: int = 5, manufacturer_id: str = None, c
         "Limit": limit
     }
     
+    # Filters must be nested inside FilterOptionsRequest, as arrays of {"Id": ...}
+    filters = {}
     if manufacturer_id:
-        body["ManufacturerId"] = manufacturer_id
+        filters["ManufacturerFilter"] = [{"Id": str(manufacturer_id)}]
     if category_id:
-        body["CategoryId"] = category_id
+        filters["CategoryFilter"] = [{"Id": str(category_id)}]
     if search_options:
-        body["SearchOptionList"] = search_options.split(",")
+        filters["SearchOptions"] = [o.strip() for o in search_options.split(",")]
+    if filters:
+        body["FilterOptionsRequest"] = filters
     
     # Add sort options if specified
     if sort_field:
@@ -212,11 +216,8 @@ def get_product_pricing(product_number: str, customer_id: str = "0", requested_q
         customer_id: Customer ID for pricing (default: "0")
         requested_quantity: Quantity for pricing calculation (default: 1)
     """
-    url = f"{API_BASE}/products/v4/search/{product_number}/productpricing"
+    url = f"{API_BASE}/products/v4/search/{product_number}/pricingbyquantity/{requested_quantity}"
     headers = _get_headers(customer_id)
-    
-    params = {"requestedQuantity": requested_quantity}
-    url += "?" + "&".join([f"{k}={v}" for k, v in params.items()])
     
     return _make_request("GET", url, headers)
 
